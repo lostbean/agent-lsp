@@ -163,6 +163,12 @@ func HandleGetServerCapabilities(ctx context.Context, client *lsp.LSPClient, _ m
 		}
 	}
 
+	if hasCapabilityInMap(caps, "documentSymbolProvider") && hasCapabilityInMap(caps, "referencesProvider") {
+		supported = append(supported, "blast_radius")
+	} else {
+		unsupported = append(unsupported, "blast_radius")
+	}
+
 	sort.Strings(supported)
 	sort.Strings(unsupported)
 
