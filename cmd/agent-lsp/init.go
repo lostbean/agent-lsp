@@ -444,9 +444,9 @@ func generateRulesContent(target ...rulesTarget) string {
 	b.WriteString("## agent-lsp Skills\n\n")
 	b.WriteString("agent-lsp provides 66 code intelligence tools and 23 workflow skills.\n")
 	b.WriteString("Prefer these tools over text search for code intelligence tasks.\n\n")
-	b.WriteString("**Before editing code:** call `blast_radius` for blast-radius analysis.\n")
+	b.WriteString("**For supported source files:** initialize the project with `start_lsp`, inspect `get_server_capabilities`, and use `blast_radius` when caller impact matters to the change.\n")
 	b.WriteString("**Before applying edits:** call `preview_edit` to preview the diagnostic delta.\n")
-	b.WriteString("**After any change:** call `get_diagnostics`, then `run_build` and `run_tests`.\n\n")
+	b.WriteString("**After code changes:** inspect available diagnostics and run the project build and tests. Empty or incomplete analysis does not establish safety.\n\n")
 	if claude {
 		b.WriteString("**Task-to-tool mapping (use these instead of Read/Grep for code):**\n\n")
 		b.WriteString("| Task | Use this | Not this |\n")
