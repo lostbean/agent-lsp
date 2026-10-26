@@ -229,7 +229,7 @@ func autoInitClient(
 	}
 
 	// Check if client is already initialized and file is within its root.
-	if existing := cs.get(); existing != nil {
+	if existing := cs.get(); existing != nil && existing.IsInitialized() {
 		rootDir := existing.RootDir()
 		if rootDir != "" && strings.HasPrefix(filePath, rootDir+"/") {
 			return existing
@@ -245,7 +245,7 @@ func autoInitClient(
 	defer initMu.Unlock()
 
 	// Re-check after acquiring lock (double-checked locking pattern).
-	if existing := cs.get(); existing != nil {
+	if existing := cs.get(); existing != nil && existing.IsInitialized() {
 		existingRoot := existing.RootDir()
 		if existingRoot != "" && strings.HasPrefix(filePath, existingRoot+"/") {
 			return existing
@@ -256,13 +256,14 @@ func autoInitClient(
 		"auto-init: inferred workspace root %q for file %q", root, filePath))
 
 	if sm, ok := resolver.(*lsp.ServerManager); ok {
-		if err := sm.StartAll(ctx, root); err != nil {
-			logging.Log(logging.LevelWarning, fmt.Sprintf("auto-init StartAll failed: %v", err))
+		client, err := sm.StartForLanguage(ctx, root, sm.LanguageIDForFile(filePath))
+		if err != nil {
+			logging.Log(logging.LevelWarning, fmt.Sprintf("auto-init failed: %v", err))
 			return nil
 		}
-		if c := resolver.DefaultClient(); c != nil {
-			cs.set(c)
-			return c
+		if client != nil {
+			cs.set(client)
+			return client
 		}
 		return nil
 	}
@@ -305,7 +306,7 @@ func Run(ctx context.Context, resolver lsp.ClientResolver, registry *extensions.
 	// clientForFileWithAutoInit extends clientForFile with auto-init behavior.
 	// If the resolver returns no client for filePath, attempt auto-initialization.
 	clientForFileWithAutoInit := func(filePath string) *lsp.LSPClient {
-		if c := clientForFile(resolver, cs, filePath); c != nil {
+		if c := clientForFile(resolver, cs, filePath); c != nil && c.IsInitialized() {
 			return c
 		}
 		return autoInitClient(ctx, resolver, cs, &initMu, filePath)
@@ -324,7 +325,7 @@ func Run(ctx context.Context, resolver lsp.ClientResolver, registry *extensions.
 	outputFormat := getOutputFormat()
 
 	instructions := "This server provides 66 code intelligence tools and 24 multi-step workflow skills across 31 languages. " +
-		"IMPORTANT: call blast_radius before editing any file. It returns all exported symbols with their callers partitioned into test vs non-test in one call. This replaces manual loops over find_references. Pass scope='all' to include unexported symbols for dead code detection. " +
+		"Use language-server tools for supported source files and concrete code-intelligence questions. Initialize the project with start_lsp and inspect get_server_capabilities before selecting operations. Use blast_radius when callers of existing code matter to a change; pass scope='all' to include unexported symbols. " +
 		"Task-to-tool mapping: " +
 		"all callers of all exports in a file -> blast_radius (one call); " +
 		"see file structure -> list_symbols; " +
@@ -338,7 +339,7 @@ func Run(ctx context.Context, resolver lsp.ClientResolver, registry *extensions.
 		"available quick fixes -> suggest_fixes; " +
 		"full context on a symbol -> explore_symbol (one call); " +
 		"safe edit (preview + apply) -> safe_apply_edit. " +
-		"Workflow: blast_radius before editing, preview_edit before applying, get_diagnostics after changes. " +
+		"Workflow: select the project root, query the relevant symbols, preview supported code edits, then verify diagnostics and the project build and tests. Empty or incomplete analysis does not establish safety. " +
 		"Prefer these tools over text search for code intelligence tasks. " +
 		"Call prompts/get with a skill name (e.g. lsp-refactor, lsp-inspect, lsp-verify) for full workflow instructions."
 	if outputFormat == "gcf" {
