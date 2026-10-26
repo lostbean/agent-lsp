@@ -30,6 +30,12 @@ func TestIsTestFile(t *testing.T) {
 		// Python test_ prefix
 		{"test_models.py", true},
 		{"/home/user/project/test_utils.py", true},
+		// Gleam unit tests and support modules under the standard test directory
+		{"test/person_test.gleam", true},
+		{"test/support/person.gleam", true},
+		{"/project/test/person.gleam", true},
+		{"src/person.gleam", false},
+		{"src/contest/person.gleam", false},
 		// Negative cases
 		{"pkg/foo/bar.go", false},
 		{"main.go", false},
