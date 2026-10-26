@@ -775,7 +775,9 @@ understand blast radius.
 - `test_files` is the deduplicated set of test files that reference any changed symbol.
 - `non_test_callers` is the blast radius for production code.
 - `sync_guarded`: present and `true` on symbols that are methods on types containing synchronization primitives (Mutex, RWMutex, Lock, atomic). Covers Go, Java, Rust, Python, C/C++ primitives. Helps agents distinguish mutex-guarded code from pure functions when assessing risk.
-- `warnings` contains messages for any `GetReferences` calls that failed (non-fatal).
+- `warnings` contains failed symbol-extraction and reference-query details. GCF graph responses include these details as a separate text item. Partial results do not establish impact for files that failed.
+- If every file fails symbol extraction, the tool returns an error rather than an empty successful graph.
+- The server must advertise both `documentSymbolProvider` and `referencesProvider`; unsupported analysis returns an error and is listed by `get_server_capabilities`.
 
 ---
 
