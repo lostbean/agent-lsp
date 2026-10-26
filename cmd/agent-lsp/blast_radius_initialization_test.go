@@ -69,8 +69,12 @@ func TestBlastRadius_InitializesSelectedServer(t *testing.T) {
 	if err := os.WriteFile(file, []byte("package example\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
+	rustFile := filepath.Join(root, "script.rs")
+	if err := os.WriteFile(rustFile, []byte("fn main() {}\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
 	resolver := lsp.NewMultiServerManager([]config.ServerEntry{
-		{LanguageID: "python", Extensions: []string{"py"}, Command: []string{filepath.Join(root, "unavailable-python-server")}},
+		{LanguageID: "rust", Extensions: []string{"rs"}, Command: []string{filepath.Join(root, "unavailable-rust-server")}},
 		{LanguageID: "go", Extensions: []string{"go"}, Command: []string{executable, "-test.run=^TestImpactLSPProcess$", "--", "impact-lsp-peer"}},
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -118,4 +122,19 @@ func TestBlastRadius_InitializesSelectedServer(t *testing.T) {
 			t.Fatalf("missing impact result: %s", text)
 		}
 	}
+	// A warm Go connection must not stand in for the configured, unstarted
+	// Rust server. Its unavailable command must be reported as a failure.
+	result, err := session.CallTool(ctx, &mcp.CallToolParams{Name: "blast_radius", Arguments: map[string]any{"changed_files": []string{rustFile}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.IsError {
+		t.Fatalf("Rust query used the warm Go server: %v", result.Content)
+	}
+	// Failing to start Rust must leave the Go server usable.
+	result, err = session.CallTool(ctx, &mcp.CallToolParams{Name: "blast_radius", Arguments: map[string]any{"changed_files": []string{file}}})
+	if err != nil || result.IsError {
+		t.Fatalf("Go query failed after Rust startup failure: %v %v", err, result)
+	}
+
 }
