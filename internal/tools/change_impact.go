@@ -33,6 +33,10 @@ import (
 
 // isTestFile returns true if the given path looks like a test file.
 func isTestFile(path string) bool {
+	if strings.HasSuffix(path, ".gleam") {
+		normalized := "/" + filepath.ToSlash(path)
+		return strings.HasSuffix(path, "_test.gleam") || strings.Contains(normalized, "/test/")
+	}
 	if strings.HasSuffix(path, "_test.go") {
 		return true
 	}

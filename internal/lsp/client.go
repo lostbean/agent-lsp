@@ -1890,6 +1890,8 @@ func languageIDFromURI(uri string) string {
 			ext = ext[:end]
 		}
 		switch ext {
+		case "gleam":
+			return "gleam"
 		case "go":
 			return "go"
 		case "ts", "tsx":
